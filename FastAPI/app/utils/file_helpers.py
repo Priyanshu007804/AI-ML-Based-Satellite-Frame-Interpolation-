@@ -23,8 +23,10 @@ def generate_unique_filename(prefix: str = "frame", ext: str = ".png") -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}{ext}"
 
 
-def validate_image_extension(filename: str) -> bool:
-    """Check if the uploaded file has an allowed image extension.
+def validate_extension(filename: str) -> bool:
+    """Check if the uploaded file has an allowed extension.
+
+    Supports both image files and NetCDF/HDF5 satellite data.
 
     Args:
         filename: Original filename from the upload.
@@ -34,6 +36,10 @@ def validate_image_extension(filename: str) -> bool:
     """
     ext = Path(filename).suffix.lower()
     return ext in ALLOWED_EXTENSIONS
+
+
+# Keep backward compatibility
+validate_image_extension = validate_extension
 
 
 async def save_upload(upload_file: UploadFile, destination: Path) -> Path:
@@ -46,6 +52,7 @@ async def save_upload(upload_file: UploadFile, destination: Path) -> Path:
     Returns:
         The destination Path.
     """
+    destination.parent.mkdir(parents=True, exist_ok=True)
     async with aiofiles.open(destination, "wb") as f:
         content = await upload_file.read()
         await f.write(content)
@@ -60,7 +67,7 @@ def cleanup_files(*paths: Path) -> None:
     """
     for p in paths:
         try:
-            if p.exists():
+            if p and p.exists():
                 p.unlink()
         except OSError:
             pass

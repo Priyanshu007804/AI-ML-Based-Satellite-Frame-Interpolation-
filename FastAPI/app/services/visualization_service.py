@@ -84,17 +84,17 @@ def generate_optical_flow(frame1_path: str | Path, frame2_path: str | Path, outp
     # Calculate dense optical flow using Farneback
     flow = cv2.calcOpticalFlowFarneback(gray1, gray2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
 
-    # Subsample vectors for quiver plot
-    step = 80
+    # Subsample vectors for quiver plot (adapt step size to image resolution)
     h, w = gray1.shape
+    step = max(max(h, w) // 40, 10)
     y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2, -1).astype(int)
     fx, fy = flow[y, x].T
 
     # Plot
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(12, 10))
     ax.imshow(img1_color)
-    # Quiver plot: flip y-axis for standard image coordinates
-    ax.quiver(x, y, fx, fy, color='red', scale=10, headwidth=5)
+    # Quiver plot: let matplotlib auto-scale the arrows
+    ax.quiver(x, y, fx, fy, color='cyan', alpha=0.8, width=0.003, headwidth=4)
     ax.axis('off')
 
     plt.savefig(str(output_path), bbox_inches='tight', pad_inches=0, dpi=150)

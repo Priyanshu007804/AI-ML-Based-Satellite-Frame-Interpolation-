@@ -3,6 +3,7 @@
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import { useRef } from 'react'
 import { Download, Thermometer, Wind, Info } from 'lucide-react'
+import { getOutputUrl } from '@/lib/api'
 
 interface VisualizationCardProps {
   title: string
@@ -28,14 +29,12 @@ function VisualizationCard({
   const handleDownload = () => {
     if (!imageData) return
     const link = document.createElement('a')
-    link.href = imageData.startsWith('data:') ? imageData : `data:image/png;base64,${imageData}`
+    link.href = getOutputUrl(imageData)
     link.download = `${downloadName}.png`
     link.click()
   }
 
-  const imgSrc = imageData
-    ? imageData.startsWith('data:') ? imageData : `data:image/png;base64,${imageData}`
-    : null
+  const imgSrc = imageData ? getOutputUrl(imageData) : null
 
   return (
     <motion.div

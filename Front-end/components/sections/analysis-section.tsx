@@ -5,6 +5,7 @@ import { useRef } from 'react'
 import {
   CheckCircle, CloudRain, TrendingUp, Layers, Download, FileImage, Thermometer, Wind
 } from 'lucide-react'
+import { getOutputUrl } from '@/lib/api'
 
 interface MetricsData {
   ssim: number
@@ -64,7 +65,7 @@ export function AnalysisSection({
   const handleDownload = (data: string | null, filename: string) => {
     if (!data) return
     const link = document.createElement('a')
-    link.href = data.startsWith('data:') ? data : `data:image/png;base64,${data}`
+    link.href = getOutputUrl(data)
     link.download = filename
     link.click()
   }

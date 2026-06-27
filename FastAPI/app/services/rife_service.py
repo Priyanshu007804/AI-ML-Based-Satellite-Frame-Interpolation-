@@ -3,6 +3,7 @@ RIFE HDv3 model service — singleton loader and inference API.
 
 Loads the pre-trained RIFE HDv3 model once at startup and exposes
 an `interpolate()` function for frame interpolation.
+Supports both standard images (PNG/JPG) and satellite NetCDF data.
 """
 
 import sys
@@ -72,6 +73,44 @@ def get_model():
     return _model
 
 
+def _prepare_tensor(img: np.ndarray) -> torch.Tensor:
+    """Convert a BGR uint8 image to a model-ready tensor.
+
+    Args:
+        img: BGR uint8 image (H, W, 3).
+
+    Returns:
+        Tensor of shape (1, 3, H, W) in [0, 1].
+    """
+    return (torch.tensor(img.transpose(2, 0, 1)).to(device) / 255.0).unsqueeze(0)
+
+
+def _pad_to_32(t: torch.Tensor) -> tuple[torch.Tensor, int, int]:
+    """Pad tensor dimensions to multiples of 32.
+
+    Returns:
+        Padded tensor, original height, original width.
+    """
+    n, c, h, w = t.shape
+    ph = ((h - 1) // 32 + 1) * 32
+    pw = ((w - 1) // 32 + 1) * 32
+    padding = (0, pw - w, 0, ph - h)
+    return F.pad(t, padding), h, w
+
+
+def _ensure_bgr3(img: np.ndarray) -> np.ndarray:
+    """Ensure image is 3-channel BGR uint8."""
+    if img is None:
+        raise RuntimeError("Image is None")
+    if len(img.shape) == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    if img.shape[2] == 4:
+        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+    if img.shape[2] == 1:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    return img
+
+
 def interpolate(
     frame1_path: str | Path,
     frame2_path: str | Path,
@@ -123,47 +162,162 @@ def interpolate(
         img1 = cv2.resize(img1, (img0.shape[1], img0.shape[0]), interpolation=cv2.INTER_AREA)
 
     # Ensure both images are 3-channel
-    if len(img0.shape) == 2:
-        img0 = cv2.cvtColor(img0, cv2.COLOR_GRAY2BGR)
-    if len(img1.shape) == 2:
-        img1 = cv2.cvtColor(img1, cv2.COLOR_GRAY2BGR)
-    if img0.shape[2] == 4:
-        img0 = cv2.cvtColor(img0, cv2.COLOR_BGRA2BGR)
-    if img1.shape[2] == 4:
-        img1 = cv2.cvtColor(img1, cv2.COLOR_BGRA2BGR)
+    img0 = _ensure_bgr3(img0)
+    img1 = _ensure_bgr3(img1)
 
-    # Convert to tensors [0, 1] range
-    t0 = (torch.tensor(img0.transpose(2, 0, 1)).to(device) / 255.0).unsqueeze(0)
-    t1 = (torch.tensor(img1.transpose(2, 0, 1)).to(device) / 255.0).unsqueeze(0)
+    result = _run_inference(model, img0, img1, exp)
 
-    # Pad to multiples of 32
-    n, c, h, w = t0.shape
-    ph = ((h - 1) // 32 + 1) * 32
-    pw = ((w - 1) // 32 + 1) * 32
-    padding = (0, pw - w, 0, ph - h)
-    t0 = F.pad(t0, padding)
-    t1 = F.pad(t1, padding)
+    # Save result
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(output_path), result)
+
+    logger.info("Interpolated frame saved to %s", output_path)
+    return output_path
+
+
+def interpolate_arrays(
+    img0: np.ndarray,
+    img1: np.ndarray,
+    exp: int = 1,
+) -> np.ndarray:
+    """Run RIFE interpolation on numpy arrays directly.
+
+    This is used by batch_service for processing without file I/O.
+
+    Args:
+        img0: First frame as BGR uint8 (H, W, 3).
+        img1: Second frame as BGR uint8 (H, W, 3).
+        exp: Interpolation exponent. Default 1 → single middle frame.
+
+    Returns:
+        Middle interpolated frame as BGR uint8 (H, W, 3).
+    """
+    model = get_model()
+
+    # Ensure matching dimensions
+    if img0.shape[:2] != img1.shape[:2]:
+        img1 = cv2.resize(img1, (img0.shape[1], img0.shape[0]), interpolation=cv2.INTER_AREA)
+
+    img0 = _ensure_bgr3(img0)
+    img1 = _ensure_bgr3(img1)
+
+    return _run_inference(model, img0, img1, exp)
+
+
+def interpolate_arrays_multi(
+    img0: np.ndarray,
+    img1: np.ndarray,
+    num_intermediate: int = 1,
+) -> list[np.ndarray]:
+    """Generate multiple intermediate frames between two images.
+
+    Args:
+        img0: First frame as BGR uint8 (H, W, 3).
+        img1: Second frame as BGR uint8 (H, W, 3).
+        num_intermediate: Number of intermediate frames to generate.
+
+    Returns:
+        List of intermediate frames (excludes input frames).
+    """
+    model = get_model()
+
+    if img0.shape[:2] != img1.shape[:2]:
+        img1 = cv2.resize(img1, (img0.shape[1], img0.shape[0]), interpolation=cv2.INTER_AREA)
+
+    img0 = _ensure_bgr3(img0)
+    img1 = _ensure_bgr3(img1)
+
+    t0 = _prepare_tensor(img0)
+    t1 = _prepare_tensor(img1)
+    t0, h, w = _pad_to_32(t0)
+    t1 = F.pad(t1, (0, t0.shape[3] - img1.shape[1], 0, t0.shape[2] - img1.shape[0]))
+
+    results = []
+    for i in range(1, num_intermediate + 1):
+        ratio = i / (num_intermediate + 1)
+        # Use bisection-based ratio interpolation
+        mid = _ratio_inference(model, t0, t1, ratio)
+        result = (mid[0] * 255).byte().cpu().numpy().transpose(1, 2, 0)[:h, :w]
+        results.append(result)
+
+    return results
+
+
+def _run_inference(model, img0: np.ndarray, img1: np.ndarray, exp: int) -> np.ndarray:
+    """Core inference loop shared by interpolate() and interpolate_arrays().
+
+    Returns:
+        Middle frame as BGR uint8 (H, W, 3).
+    """
+    t0 = _prepare_tensor(img0)
+    t1 = _prepare_tensor(img1)
+
+    t0, h, w = _pad_to_32(t0)
+    # Re-pad t1 to match t0's padded size
+    _, _, ph, pw = t0.shape
+    t1_padded = F.pad(
+        _prepare_tensor(img1),
+        (0, pw - img1.shape[1], 0, ph - img1.shape[0])
+    )
 
     # Run recursive interpolation
     logger.info("Running RIFE interpolation with exp=%d ...", exp)
-    img_list = [t0, t1]
+    img_list = [t0, t1_padded]
     for i in range(exp):
         tmp = []
         for j in range(len(img_list) - 1):
             mid = model.inference(img_list[j], img_list[j + 1])
             tmp.append(img_list[j])
             tmp.append(mid)
-        tmp.append(t1)
+        tmp.append(t1_padded)
         img_list = tmp
 
     # Pick the middle frame
     mid_index = len(img_list) // 2
     middle_frame = img_list[mid_index]
 
-    # Convert back to numpy and save
+    # Convert back to numpy
     result = (middle_frame[0] * 255).byte().cpu().numpy().transpose(1, 2, 0)[:h, :w]
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(output_path), result)
+    return result
 
-    logger.info("Interpolated frame saved to %s", output_path)
-    return output_path
+
+def _ratio_inference(
+    model, t0: torch.Tensor, t1: torch.Tensor, ratio: float,
+    threshold: float = 0.02, max_cycles: int = 8,
+) -> torch.Tensor:
+    """Interpolate at a specific ratio between two frames using bisection.
+
+    Args:
+        model: RIFE model.
+        t0: First frame tensor.
+        t1: Second frame tensor.
+        ratio: Target ratio (0.0 = t0, 1.0 = t1).
+        threshold: Ratio precision threshold.
+        max_cycles: Maximum bisection iterations.
+
+    Returns:
+        Interpolated frame tensor.
+    """
+    if ratio <= threshold / 2:
+        return t0
+    if ratio >= 1.0 - threshold / 2:
+        return t1
+
+    img0_ratio = 0.0
+    img1_ratio = 1.0
+    tmp_img0 = t0
+    tmp_img1 = t1
+
+    for _ in range(max_cycles):
+        middle = model.inference(tmp_img0, tmp_img1)
+        middle_ratio = (img0_ratio + img1_ratio) / 2
+        if ratio - threshold / 2 <= middle_ratio <= ratio + threshold / 2:
+            break
+        if ratio > middle_ratio:
+            tmp_img0 = middle
+            img0_ratio = middle_ratio
+        else:
+            tmp_img1 = middle
+            img1_ratio = middle_ratio
+
+    return middle

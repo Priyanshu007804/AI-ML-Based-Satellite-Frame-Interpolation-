@@ -3,6 +3,7 @@
 import { motion, useInView, AnimatePresence } from 'framer-motion'
 import { useRef } from 'react'
 import { Download, ZoomIn, Layers } from 'lucide-react'
+import { getOutputUrl } from '@/lib/api'
 
 interface ResultFrame {
   label: string
@@ -23,16 +24,12 @@ function FrameCard({ frame, index }: { frame: ResultFrame; index: number }) {
   const handleDownload = () => {
     if (!frame.imageData) return
     const link = document.createElement('a')
-    link.href = frame.imageData.startsWith('data:') ? frame.imageData : `data:image/png;base64,${frame.imageData}`
+    link.href = getOutputUrl(frame.imageData)
     link.download = `${frame.label.toLowerCase().replace(/ /g, '_')}.png`
     link.click()
   }
 
-  const imgSrc = frame.imageData
-    ? frame.imageData.startsWith('data:')
-      ? frame.imageData
-      : `data:image/png;base64,${frame.imageData}`
-    : null
+  const imgSrc = frame.imageData ? getOutputUrl(frame.imageData) : null
 
   return (
     <motion.div

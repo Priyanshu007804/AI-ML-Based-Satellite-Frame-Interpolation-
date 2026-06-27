@@ -1,1 +1,1 @@
-# Routes package
+from app.routes import health, predict, batch

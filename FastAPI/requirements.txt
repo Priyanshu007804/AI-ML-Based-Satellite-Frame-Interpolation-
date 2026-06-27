@@ -16,6 +16,22 @@ Pillow>=9.0
 scikit-image>=0.19.0
 matplotlib>=3.5.0
 
+# NetCDF & satellite data
+xarray>=2023.0
+netCDF4>=1.6.0
+h5py>=3.7.0
+s3fs>=2023.0
+fsspec>=2023.0
+
+# Enhanced metrics (FSIM)
+piq>=0.8.0
+
+# Animation generation
+imageio[ffmpeg]>=2.31.0
+
+# Report generation
+jinja2>=3.1.0
+
 # Optional (original dependencies)
 sk-video>=1.1.10
 moviepy>=1.0.3

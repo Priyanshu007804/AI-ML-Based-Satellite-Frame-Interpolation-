@@ -8,6 +8,7 @@ interface MetricsData {
   ssim: number
   psnr: number
   mse: number
+  fsim: number
 }
 
 interface MetricCardProps {
@@ -153,6 +154,17 @@ export function MetricsSection({ metrics, visible }: MetricsSectionProps) {
       min: 0,
       max: 0.1,
       higherIsBetter: false,
+    },
+    {
+      label: 'FSIM',
+      value: metrics.fsim,
+      unit: '',
+      description: 'Feature Similarity Index — captures cloud motion features',
+      interpretation: metrics.fsim >= 0.85 ? 'Excellent' : metrics.fsim >= 0.7 ? 'Good' : 'Fair',
+      quality: metrics.fsim >= 0.85 ? 'good' : metrics.fsim >= 0.7 ? 'average' : 'poor',
+      min: 0,
+      max: 1,
+      higherIsBetter: true,
     },
   ]
 

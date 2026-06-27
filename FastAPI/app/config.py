@@ -18,8 +18,26 @@ UPLOAD_DIR = PROJECT_ROOT / "app" / "uploads"
 # Directory for generated output images
 OUTPUT_DIR = PROJECT_ROOT / "app" / "outputs"
 
-# Allowed image extensions for upload validation
-ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+# Directory for satellite data (GOES-19, INSAT-3DS, Himawari)
+SATELLITE_DATA_DIR = PROJECT_ROOT / "app" / "satellite_data"
+
+# Directory for batch processing jobs
+BATCH_DIR = PROJECT_ROOT / "app" / "batch_jobs"
+
+# Directory for generated animations
+ANIMATION_DIR = OUTPUT_DIR / "animations"
+
+# Allowed file extensions for upload validation
+ALLOWED_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp",
+    ".nc", ".nc4", ".h5", ".hdf5",  # NetCDF / HDF5 satellite data
+}
+
+# Allowed image-only extensions (for backward compatibility)
+ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
+
+# Allowed satellite data extensions
+ALLOWED_NC_EXTENSIONS = {".nc", ".nc4", ".h5", ".hdf5"}
 
 # Server configuration
 HOST = os.getenv("FASTAPI_HOST", "0.0.0.0")
@@ -34,6 +52,11 @@ CORS_ORIGINS = os.getenv(
 # Default interpolation exponent (2^exp - 1 intermediate frames generated)
 DEFAULT_EXP = int(os.getenv("RIFE_EXP", "3"))
 
+# GOES-19 ABI public S3 bucket (no auth needed — free tier)
+GOES19_BUCKET = "noaa-goes19"
+GOES19_PRODUCT = "ABI-L2-CMIPF"  # Cloud & Moisture Imagery Full Disk
+GOES19_CHANNEL = 13  # TIR ~10.3 µm
+
 # Ensure required directories exist
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+for d in [UPLOAD_DIR, OUTPUT_DIR, SATELLITE_DATA_DIR, BATCH_DIR, ANIMATION_DIR]:
+    d.mkdir(parents=True, exist_ok=True)

@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import CORS_ORIGINS, OUTPUT_DIR, HOST, PORT
-from app.routes import health, predict
+from app.routes import health, predict, batch
 from app.services import rife_service
 
 # ---------------------------------------------------------------------------
@@ -48,10 +48,13 @@ app = FastAPI(
     description=(
         "AI-powered satellite image temporal resolution enhancement "
         "using RIFE HDv3 deep learning frame interpolation. "
-        "Upload two consecutive satellite frames and receive an "
-        "AI-generated intermediate frame with quality metrics."
+        "Supports GOES-19, INSAT-3DS/3DR, and Himawari-8 data in "
+        "NetCDF (.nc) and standard image formats. "
+        "Upload consecutive satellite frames and receive "
+        "AI-generated intermediate frames with quality metrics "
+        "(SSIM, MSE, PSNR, FSIM)."
     ),
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -67,7 +70,7 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Static file serving — generated output images
+# Static file serving — generated output images & animations
 # ---------------------------------------------------------------------------
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 
@@ -76,6 +79,7 @@ app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 # ---------------------------------------------------------------------------
 app.include_router(health.router)
 app.include_router(predict.router)
+app.include_router(batch.router)
 
 
 # ---------------------------------------------------------------------------

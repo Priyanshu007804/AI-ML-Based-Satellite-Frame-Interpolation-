@@ -64,11 +64,20 @@ export default function UploadPage() {
     },
   })
 
+  const isImageFile = (file: File) => {
+    return file.type.startsWith('image/') || /\.(png|jpg|jpeg|tif|tiff|bmp)$/i.test(file.name)
+  }
+
   const handleFrame1Drop = useCallback((files: File[]) => {
     const file = files[0]
     if (!file) return
     setFrame1(file)
-    setPreview1(URL.createObjectURL(file))
+    // Only create preview for image files, not NC files
+    if (isImageFile(file)) {
+      setPreview1(URL.createObjectURL(file))
+    } else {
+      setPreview1(null) // NC files can't be previewed as images
+    }
     setResults(null)
     setUploadError(null)
   }, [])
@@ -77,7 +86,11 @@ export default function UploadPage() {
     const file = files[0]
     if (!file) return
     setFrame2(file)
-    setPreview2(URL.createObjectURL(file))
+    if (isImageFile(file)) {
+      setPreview2(URL.createObjectURL(file))
+    } else {
+      setPreview2(null)
+    }
     setResults(null)
     setUploadError(null)
   }, [])
@@ -147,7 +160,12 @@ export default function UploadPage() {
         </div>
 
         <MetricsSection
-          metrics={results ? { ssim: results.ssim, psnr: results.psnr, mse: results.mse } : null}
+          metrics={results ? {
+            ssim: results.ssim,
+            psnr: results.psnr,
+            mse: results.mse,
+            fsim: results.fsim,
+          } : null}
           visible={!!results}
         />
 
@@ -158,7 +176,12 @@ export default function UploadPage() {
         />
 
         <AnalysisSection
-          metrics={results ? { ssim: results.ssim, psnr: results.psnr, mse: results.mse } : null}
+          metrics={results ? {
+            ssim: results.ssim,
+            psnr: results.psnr,
+            mse: results.mse,
+            fsim: results.fsim,
+          } : null}
           generatedImage={results?.generated_image ?? null}
           heatmapData={results?.heatmap ?? null}
           opticalFlowData={results?.optical_flow ?? null}
