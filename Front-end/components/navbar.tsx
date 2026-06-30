@@ -10,7 +10,6 @@ const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Upload', href: '/upload' },
   { label: 'Batch', href: '/batch' },
-  { label: 'Results', href: '/upload#results' },
   { label: 'About', href: '/about' },
 ]
 
@@ -86,19 +85,13 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* Access CTA (Sign In button style from screenshot) */}
+          {/* Time display */}
           <div className="hidden md:flex items-center gap-4">
             {time && (
               <span className="font-mono text-[10px] text-slate-500 tracking-wider mr-2 select-none">
                 {time}
               </span>
             )}
-            <Link
-              href="/upload"
-              className="inline-flex items-center justify-center rounded-full border border-white/60 bg-transparent px-5 py-1.5 text-[10px] font-bold tracking-widest text-white uppercase transition-all duration-300 hover:bg-white hover:text-black hover:border-white hover:scale-105 active:scale-95 shadow-md shadow-white/5 hover:shadow-white/10"
-            >
-              Sign In
-            </Link>
           </div>
         </div>
       </div>

@@ -26,7 +26,7 @@ export function ReportSection({
     // Create an invisible anchor to trigger download
     const a = document.createElement('a')
     a.href = reportUrl
-    a.download = `interpolation-report-${jobId}.pdf` // Backend should provide PDF or html depending on route, assuming the URL serves it
+    a.download = `interpolation-report-${jobId}.html`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -69,7 +69,7 @@ export function ReportSection({
             ) : (
               <>
                 <FileDown className="h-4 w-4" />
-                Download PDF
+                Download Report
               </>
             )}
           </button>

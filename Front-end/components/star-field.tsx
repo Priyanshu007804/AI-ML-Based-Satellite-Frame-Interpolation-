@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface Star {
   x: number
@@ -28,6 +29,7 @@ const slideColors = [
 
 export function StarField() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   
   // Track normalized mouse coords (-0.5 to 0.5)
   const mouseRef = useRef({ x: 0, y: 0, currentX: 0, currentY: 0 })
@@ -164,8 +166,10 @@ export function StarField() {
         }
       })
 
-      // Establish Planet coordinates (bottom-right)
-      const isMobile = canvas.width < 768
+      // Skip drawing planet if we are on desktop where the 3D model takes over
+      if (!isDesktop) {
+        // Establish Planet coordinates (bottom-right)
+        const isMobile = canvas.width < 768
       const planetX = isMobile ? canvas.width * 0.95 : canvas.width * 0.88
       const planetY = isMobile ? canvas.height * 0.92 : canvas.height * 0.82
       const planetRadius = isMobile ? canvas.width * 0.35 : Math.min(canvas.width * 0.28, 420)
@@ -244,6 +248,7 @@ export function StarField() {
       ctx.fill()
 
       ctx.restore()
+      }
 
       animId = requestAnimationFrame(animate)
     }
@@ -255,12 +260,12 @@ export function StarField() {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('slide-change', handleSlideChange)
     }
-  }, [])
+  }, [isDesktop])
 
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0"
+      className="pointer-events-none fixed inset-0 z-0 lg:hidden"
       aria-hidden="true"
     />
   )

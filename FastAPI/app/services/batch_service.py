@@ -21,6 +21,32 @@ from app.services import rife_service, nc_service, metrics_service
 
 logger = logging.getLogger(__name__)
 
+# Maximum pixel dimension for RIFE inference (prevents OOM on large satellite images)
+MAX_INFERENCE_DIM = 2048
+
+
+def _limit_resolution(img: np.ndarray, max_dim: int = MAX_INFERENCE_DIM) -> np.ndarray:
+    """Downscale an image so its largest dimension does not exceed max_dim.
+
+    This prevents GPU/CPU out-of-memory errors when processing large
+    satellite images (e.g. 5000×5000 full-disk imagery).
+
+    Args:
+        img: BGR uint8 image (H, W, 3).
+        max_dim: Maximum allowed dimension (width or height).
+
+    Returns:
+        Downscaled image if needed, otherwise the original.
+    """
+    h, w = img.shape[:2]
+    if max(h, w) <= max_dim:
+        return img
+    scale = max_dim / max(h, w)
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+    logger.info("Downscaling image from %dx%d to %dx%d for inference", w, h, new_w, new_h)
+    return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
 
 class BatchJob:
     """Represents a batch interpolation job with progress tracking."""
@@ -123,6 +149,9 @@ def run_batch_interpolation(job: BatchJob) -> BatchJob:
                     bgr = cv2.cvtColor(bgr, cv2.COLOR_BGRA2BGR)
                 images.append(bgr)
                 metadata_list.append({"source_file": fpath.name})
+
+        # Step 1b: Limit resolution to prevent OOM on large satellite images
+        images = [_limit_resolution(img) for img in images]
 
         # Step 2: Save original frames as PNGs for visualization
         for i, img in enumerate(images):
@@ -238,8 +267,19 @@ def run_multilevel_interpolation(
                     raise RuntimeError(f"Could not read: {fpath}")
                 if len(bgr.shape) == 2:
                     bgr = cv2.cvtColor(bgr, cv2.COLOR_GRAY2BGR)
+                if bgr.ndim == 3 and bgr.shape[2] == 4:
+                    bgr = cv2.cvtColor(bgr, cv2.COLOR_BGRA2BGR)
                 current_images.append(bgr)
                 metadata_list.append({"source_file": fpath.name})
+
+        # Limit resolution to prevent OOM on large satellite images
+        current_images = [_limit_resolution(img) for img in current_images]
+
+        # Save original frames as PNGs for visualization / report
+        for i, img in enumerate(current_images):
+            orig_path = job.output_dir / f"original_{i:04d}.png"
+            cv2.imwrite(str(orig_path), img)
+            job.original_frames_png.append(str(orig_path))
 
         total_work = sum(max(len(current_images) - 1, 0) * (2 ** i) for i in range(levels))
         done_work = 0
@@ -263,6 +303,39 @@ def run_multilevel_interpolation(
             frame_path = job.output_dir / f"frame_{i:04d}.png"
             cv2.imwrite(str(frame_path), img)
             job.all_frames_png.append(str(frame_path))
+
+        # Identify which frames are interpolated (not in the original set)
+        original_count = len(job.original_frames_png)
+        step = 2 ** levels  # e.g. levels=2 → every 4th frame is original
+        for i in range(len(current_images)):
+            if i % step != 0:  # this is an interpolated frame
+                job.interpolated_frames_png.append(job.all_frames_png[i])
+                
+                # If input was NC, save interpolated frames as NC too
+                # We use the metadata of the closest previous original frame
+                orig_idx = i // step
+                if orig_idx < len(metadata_list) and metadata_list[orig_idx].get("satellite_type"):
+                    nc_out_path = job.output_dir / f"frame_{i:04d}.nc"
+                    gray = cv2.cvtColor(current_images[i], cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
+                    nc_service.save_array_as_nc(gray, nc_out_path, metadata_list[orig_idx])
+
+        # Compute metrics for each original consecutive pair
+        for pair_idx in range(original_count - 1):
+            img0 = cv2.imread(job.original_frames_png[pair_idx])
+            img1 = cv2.imread(job.original_frames_png[pair_idx + 1])
+            # Use the first interpolated frame between this pair as generated
+            mid_idx = pair_idx * step + step // 2
+            if mid_idx < len(job.all_frames_png):
+                mid_img = cv2.imread(job.all_frames_png[mid_idx])
+                if img0 is not None and img1 is not None and mid_img is not None:
+                    pair_metrics = metrics_service.compute_metrics_from_arrays(
+                        generated=mid_img.astype(np.float64) / 255.0,
+                        reference=((img0.astype(np.float64) + img1.astype(np.float64)) / 2.0) / 255.0,
+                    )
+                    pair_metrics["pair_index"] = pair_idx
+                    pair_metrics["frame_before"] = job.input_frames[pair_idx].name
+                    pair_metrics["frame_after"] = job.input_frames[pair_idx + 1].name
+                    job.all_metrics.append(pair_metrics)
 
         job.status = "completed"
         job.progress = 100.0

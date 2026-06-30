@@ -1,0 +1,42 @@
+export const slides = [
+  {
+    title: 'INTEREP AI',
+    subtitle: 'Temporal Interpolation',
+    description: 'A deep learning framework designed to bridge temporal gaps in satellite observations. Synthesizes high-fidelity intermediate frames for seamless Earth monitoring.',
+    buttonText: 'Launch Platform',
+    buttonHref: '/upload',
+    badgeText: 'Next-Gen Satellite Resolution',
+  },
+  {
+    title: 'Motion Vectors',
+    subtitle: 'Optical Flow Engine',
+    description: 'Calculates precise sub-pixel displacement vectors between consecutive orbital passes. Tracks movement, clouds, and surface changes with ultra-fine precision.',
+    buttonText: 'Explore Motion',
+    buttonHref: '/batch',
+    badgeText: 'Displacement Telemetry',
+  },
+  {
+    title: 'RIFE Pipeline',
+    subtitle: 'Neural Frame Synthesis',
+    description: 'Leverages Real-Time Intermediate Flow Estimation (RIFE v4.6) adapted for satellite imagery. Generates sharp, artifact-free intermediate observations.',
+    buttonText: 'Learn Methodology',
+    buttonHref: '/about',
+    badgeText: 'Advanced Neural Architecture',
+  },
+  {
+    title: 'Model Telemetry',
+    subtitle: 'Evaluation Metrics',
+    description: 'Automated analysis comparing PSNR, SSIM, and MSE values. Validates prediction quality and guarantees physical consistency of optical layers.',
+    buttonText: 'View Benchmarks',
+    buttonHref: '/about',
+    badgeText: 'Model Validation Metric',
+  },
+  {
+    title: 'Earth Observation',
+    subtitle: 'Multispectral Tracking',
+    description: 'Supports a wide variety of satellite sensors and channels. Enhances the temporal resolution of Sentinel, Landsat, and commercial constellations.',
+    buttonText: 'Deploy System',
+    buttonHref: '/upload',
+    badgeText: 'Multi-Constellation Support',
+  },
+]

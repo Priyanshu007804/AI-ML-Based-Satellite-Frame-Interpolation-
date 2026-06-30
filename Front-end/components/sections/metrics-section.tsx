@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useInView, AnimatePresence, useMotionValue, useSpring, useEffect as useMotionEffect } from 'framer-motion'
+import { motion, useInView, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
 import { useRef, useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, Info } from 'lucide-react'
 

@@ -195,3 +195,30 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(34, 211, 238, 0.5);
 }
+
+/* ─── Cinematic Scroll Panels ──────────────────────────────────── */
+.scroll-panel {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.scroll-panel a,
+.scroll-panel button {
+  pointer-events: auto;
+}
+
+/* Vignette overlay on desktop scroll scene */
+@media (min-width: 1024px) {
+  .scroll-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background:
+      radial-gradient(ellipse at center, transparent 50%, rgba(3, 8, 22, 0.5) 100%);
+  }
+}

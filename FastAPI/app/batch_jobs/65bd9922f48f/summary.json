@@ -1,0 +1,25 @@
+{
+  "job_id": "65bd9922f48f",
+  "status": "completed",
+  "num_input_frames": 2,
+  "num_interpolated_frames": 1,
+  "num_total_frames": 3,
+  "temporal_enhancement": "2x",
+  "metrics": [
+    {
+      "ssim": 0.891539,
+      "mse": 0.000393,
+      "psnr": 34.0546,
+      "fsim": 0.968964,
+      "pair_index": 0,
+      "frame_before": "batch_frame_0000_8adc1fdcc587.png",
+      "frame_after": "batch_frame_0001_8ce5a7a8a0de.png"
+    }
+  ],
+  "average_metrics": {
+    "ssim": 0.891539,
+    "mse": 0.000393,
+    "psnr": 34.0546,
+    "fsim": 0.968964
+  }
+}

@@ -56,21 +56,30 @@ def generate_html_report(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTEREP AI — Interpolation Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #0a0e1a;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: #e2e8f0;
             line-height: 1.6;
             padding: 2rem;
+            min-height: 100vh;
         }}
         .container {{ max-width: 1000px; margin: 0 auto; }}
+        .header {{
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(34,211,238,0.2);
+        }}
         h1 {{
             font-size: 2rem;
-            background: linear-gradient(135deg, #22d3ee, #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #22d3ee;
             margin-bottom: 0.5rem;
         }}
         h2 {{
@@ -78,11 +87,11 @@ def generate_html_report(
             color: #22d3ee;
             margin: 2rem 0 1rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(34,211,238,0.2);
+            border-bottom: 1px solid rgba(34,211,238,0.3);
         }}
-        .meta {{ color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }}
+        .meta {{ color: #94a3b8; font-size: 0.85rem; margin-top: 0.5rem; }}
         .card {{
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(30, 41, 59, 0.8);
             border: 1px solid rgba(34,211,238,0.15);
             border-radius: 12px;
             padding: 1.5rem;
@@ -94,8 +103,8 @@ def generate_html_report(
             gap: 1rem;
         }}
         .metric-card {{
-            background: rgba(7, 20, 40, 0.7);
-            border: 1px solid rgba(34,211,238,0.1);
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(34,211,238,0.2);
             border-radius: 10px;
             padding: 1.2rem;
             text-align: center;
@@ -113,7 +122,7 @@ def generate_html_report(
             margin-top: 0.3rem;
         }}
         .metric-good {{ color: #4ade80; }}
-        .metric-avg {{ color: #22d3ee; }}
+        .metric-avg {{ color: #38bdf8; }}
         .metric-poor {{ color: #fb923c; }}
         .thumbnails {{
             display: flex;
@@ -127,13 +136,21 @@ def generate_html_report(
             height: 150px;
             object-fit: cover;
             border-radius: 8px;
-            border: 1px solid rgba(34,211,238,0.2);
+            border: 2px solid rgba(34,211,238,0.3);
+            background: rgba(15, 23, 42, 0.5);
         }}
         .chart-container {{
-            background: rgba(7, 20, 40, 0.5);
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(34,211,238,0.15);
             border-radius: 10px;
-            padding: 1rem;
+            padding: 1.5rem;
             margin: 1rem 0;
+        }}
+        .chart-fallback {{
+            text-align: center;
+            color: #94a3b8;
+            padding: 2rem;
+            font-style: italic;
         }}
         table {{
             width: 100%;
@@ -143,19 +160,22 @@ def generate_html_report(
         th {{
             text-align: left;
             padding: 0.7rem;
-            border-bottom: 2px solid rgba(34,211,238,0.2);
+            border-bottom: 2px solid rgba(34,211,238,0.3);
             color: #22d3ee;
             font-weight: 600;
+            background: rgba(15, 23, 42, 0.5);
         }}
         td {{
             padding: 0.6rem 0.7rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }}
+        tr:hover td {{ background: rgba(34,211,238,0.05); }}
         .bar {{
             height: 6px;
             border-radius: 3px;
             background: rgba(34,211,238,0.15);
             overflow: hidden;
+            margin-top: 0.5rem;
         }}
         .bar-fill {{
             height: 100%;
@@ -174,28 +194,38 @@ def generate_html_report(
         .footer {{
             margin-top: 3rem;
             text-align: center;
-            color: #475569;
+            color: #64748b;
             font-size: 0.75rem;
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
         }}
         canvas {{ width: 100% !important; max-height: 300px; }}
+        @media print {{
+            body {{ background: #fff; color: #000; }}
+            .card, .metric-card, .chart-container {{ border-color: #ccc; background: #f8f8f8; }}
+            h1, h2, .metric-value {{ color: #0891b2; }}
+            .metric-label, .meta, td {{ color: #333; }}
+            th {{ color: #0891b2; background: #f0f0f0; }}
+        }}
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
 </head>
 <body>
     <div class="container">
-        <h1>INTEREP AI — Frame Interpolation Report</h1>
-        <p class="meta">
-            Job ID: {job_id} &nbsp;|&nbsp;
-            Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} &nbsp;|&nbsp;
-            Satellite: {satellite_type.upper()} &nbsp;|&nbsp;
-            Input Frames: {len(input_frames)} &nbsp;→&nbsp;
-            Output Frames: {len(all_frames)}
-            <span class="badge badge-info" style="margin-left:0.5rem;">
-                {len(all_frames) / max(len(input_frames), 1):.0f}× Enhanced
-            </span>
-        </p>
+        <div class="header">
+            <h1>INTEREP AI — Frame Interpolation Report</h1>
+            <p class="meta">
+                Job ID: {job_id} &nbsp;|&nbsp;
+                Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} &nbsp;|&nbsp;
+                Satellite: {satellite_type.upper()} &nbsp;|&nbsp;
+                Input Frames: {len(input_frames)} &nbsp;&rarr;&nbsp;
+                Output Frames: {len(all_frames)}
+                <span class="badge badge-info" style="margin-left:0.5rem;">
+                    {len(all_frames) / max(len(input_frames), 1):.0f}&times; Enhanced
+                </span>
+            </p>
+        </div>
 
-        <h2>📊 Average Quality Metrics</h2>
+        <h2>&#128202; Average Quality Metrics</h2>
         <div class="metrics-grid">
             <div class="metric-card">
                 <div class="metric-value {_quality_class(average_metrics.get('ssim', 0), 'ssim')}">{average_metrics.get('ssim', 'N/A')}</div>
@@ -218,28 +248,29 @@ def generate_html_report(
             </div>
         </div>
 
-        <h2>📈 Metrics Across Frames</h2>
+        <h2>&#128200; Metrics Across Frames</h2>
         <div class="chart-container">
             <canvas id="metricsChart"></canvas>
+            <p id="chartFallback" class="chart-fallback" style="display:none;">Chart could not be loaded. See the table below for detailed metrics.</p>
         </div>
 
-        <h2>🛰️ Input Frames</h2>
+        <h2>&#128752; Input Frames</h2>
         <div class="card">
             <div class="thumbnails">
-                {''.join(f'<img class="thumb" src="{t}" alt="Input {i+1}">' for i, t in enumerate(input_thumbs))}
+                {''.join(f'<img class="thumb" src="{t}" alt="Input {i+1}">' for i, t in enumerate(input_thumbs) if t)}
             </div>
-            <p style="margin-top:0.5rem;color:#64748b;font-size:0.8rem;">{len(input_frames)} original satellite observations</p>
+            <p style="margin-top:0.5rem;color:#94a3b8;font-size:0.8rem;">{len(input_frames)} original satellite observations</p>
         </div>
 
-        <h2>🤖 Interpolated Frames</h2>
+        <h2>&#129302; Interpolated Frames</h2>
         <div class="card">
             <div class="thumbnails">
-                {''.join(f'<img class="thumb" src="{t}" alt="Interpolated {i+1}">' for i, t in enumerate(interp_thumbs))}
+                {''.join(f'<img class="thumb" src="{t}" alt="Interpolated {i+1}">' for i, t in enumerate(interp_thumbs) if t)}
             </div>
-            <p style="margin-top:0.5rem;color:#64748b;font-size:0.8rem;">{len(interpolated_frames)} AI-generated intermediate frames</p>
+            <p style="margin-top:0.5rem;color:#94a3b8;font-size:0.8rem;">{len(interpolated_frames)} AI-generated intermediate frames</p>
         </div>
 
-        <h2>📋 Per-Pair Metrics</h2>
+        <h2>&#128203; Per-Pair Metrics</h2>
         <div class="card" style="overflow-x:auto;">
             <table>
                 <thead>
@@ -258,57 +289,68 @@ def generate_html_report(
         </div>
 
         <div class="footer">
-            <p>INTEREP AI — AI-Powered Satellite Temporal Resolution Enhancement</p>
+            <p>INTEREP AI &mdash; AI-Powered Satellite Temporal Resolution Enhancement</p>
             <p>ISRO Bharatiya Antariksh Hackathon 2026</p>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        const ctx = document.getElementById('metricsChart').getContext('2d');
-        const chartData = {json.dumps(chart_data)};
-        new Chart(ctx, {{
-            type: 'line',
-            data: {{
-                labels: chartData.labels,
-                datasets: [
-                    {{
-                        label: 'SSIM',
-                        data: chartData.ssim,
-                        borderColor: '#22d3ee',
-                        backgroundColor: 'rgba(34,211,238,0.1)',
-                        tension: 0.4,
-                        fill: true,
+        try {{
+            var ctx = document.getElementById('metricsChart');
+            if (ctx && typeof Chart !== 'undefined') {{
+                var chartData = {json.dumps(chart_data)};
+                new Chart(ctx.getContext('2d'), {{
+                    type: 'line',
+                    data: {{
+                        labels: chartData.labels,
+                        datasets: [
+                            {{
+                                label: 'SSIM',
+                                data: chartData.ssim,
+                                borderColor: '#22d3ee',
+                                backgroundColor: 'rgba(34,211,238,0.1)',
+                                tension: 0.4,
+                                fill: true,
+                            }},
+                            {{
+                                label: 'FSIM',
+                                data: chartData.fsim,
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139,92,246,0.1)',
+                                tension: 0.4,
+                                fill: true,
+                            }},
+                            {{
+                                label: 'PSNR (normalized)',
+                                data: chartData.psnr_norm,
+                                borderColor: '#4ade80',
+                                backgroundColor: 'rgba(74,222,128,0.1)',
+                                tension: 0.4,
+                                fill: true,
+                            }},
+                        ]
                     }},
-                    {{
-                        label: 'FSIM',
-                        data: chartData.fsim,
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139,92,246,0.1)',
-                        tension: 0.4,
-                        fill: true,
-                    }},
-                    {{
-                        label: 'PSNR (normalized)',
-                        data: chartData.psnr_norm,
-                        borderColor: '#4ade80',
-                        backgroundColor: 'rgba(74,222,128,0.1)',
-                        tension: 0.4,
-                        fill: true,
-                    }},
-                ]
-            }},
-            options: {{
-                responsive: true,
-                plugins: {{
-                    legend: {{ labels: {{ color: '#94a3b8' }} }},
-                }},
-                scales: {{
-                    x: {{ ticks: {{ color: '#64748b' }}, grid: {{ color: 'rgba(255,255,255,0.05)' }} }},
-                    y: {{ ticks: {{ color: '#64748b' }}, grid: {{ color: 'rgba(255,255,255,0.05)' }}, min: 0, max: 1 }},
-                }}
+                    options: {{
+                        responsive: true,
+                        plugins: {{
+                            legend: {{ labels: {{ color: '#94a3b8' }} }},
+                        }},
+                        scales: {{
+                            x: {{ ticks: {{ color: '#94a3b8' }}, grid: {{ color: 'rgba(255,255,255,0.08)' }} }},
+                            y: {{ ticks: {{ color: '#94a3b8' }}, grid: {{ color: 'rgba(255,255,255,0.08)' }}, min: 0, max: 1 }},
+                        }}
+                    }}
+                }});
+            }} else {{
+                document.getElementById('chartFallback').style.display = 'block';
             }}
-        }});
-    <\/script>
+        }} catch(e) {{
+            console.error('Chart error:', e);
+            var fb = document.getElementById('chartFallback');
+            if (fb) fb.style.display = 'block';
+        }}
+    </script>
 </body>
 </html>"""
 

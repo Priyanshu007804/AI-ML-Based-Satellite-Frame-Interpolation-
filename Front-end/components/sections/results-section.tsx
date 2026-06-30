@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useInView, AnimatePresence } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Download, ZoomIn, Layers } from 'lucide-react'
 import { getOutputUrl } from '@/lib/api'
 
@@ -19,6 +19,42 @@ interface ResultsSectionProps {
   frame2Preview: string | null
   visible: boolean
 }
+
+function AnimationPlayer({ frames, fps, title, subtitle }: { frames: (string | null)[], fps: number, title: string, subtitle: string }) {
+  const validFrames = frames.filter(f => f !== null) as string[]
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    if (validFrames.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % validFrames.length)
+    }, 1000 / fps)
+    return () => clearInterval(interval)
+  }, [validFrames.length, fps])
+
+  if (validFrames.length === 0) return null
+
+  return (
+    <div className="glass rounded-2xl overflow-hidden border border-slate-700/40 p-5 flex flex-col transition-all duration-300 hover:border-cyan-400/30 hover:shadow-lg hover:shadow-cyan-400/10">
+      <div className="relative overflow-hidden bg-slate-900/60 rounded-xl mb-5" style={{ aspectRatio: '1/1' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={getOutputUrl(validFrames[currentIndex])}
+          alt={title}
+          className="h-full w-full object-cover"
+        />
+        <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-white font-mono shadow-xl">
+          Frame {currentIndex + 1} / {validFrames.length}
+        </div>
+      </div>
+      <div className="text-center">
+        <h3 className="text-base font-bold text-slate-100">{title}</h3>
+        <p className="text-xs text-cyan-400 font-mono tracking-widest uppercase mt-1.5">{subtitle}</p>
+      </div>
+    </div>
+  )
+}
+
 
 function FrameCard({ frame, index }: { frame: ResultFrame; index: number }) {
   const handleDownload = () => {
@@ -162,6 +198,36 @@ export function ResultsSection({ frame1Preview, generatedImage, frame2Preview, v
                 <FrameCard key={frame.label} frame={frame} index={i} />
               ))}
             </div>
+
+            {/* Time-lapse Comparison */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mt-20 pt-16 border-t border-slate-800"
+            >
+              <div className="text-center mb-10">
+                <p className="text-xs uppercase tracking-widest text-purple-400 mb-3">Animation</p>
+                <h3 className="font-heading text-2xl font-bold text-white sm:text-3xl">Time-Lapse Comparison</h3>
+                <p className="text-sm text-slate-500 mt-3 max-w-lg mx-auto">
+                  Watch the temporal resolution improvement in real-time. The AI model synthesizes nonlinear cloud dynamics seamlessly.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <AnimationPlayer 
+                  frames={[frame1Preview, frame2Preview]} 
+                  fps={1} 
+                  title="Ground Truth (Original)" 
+                  subtitle="30-MIN INTERVAL" 
+                />
+                <AnimationPlayer 
+                  frames={[frame1Preview, generatedImage, frame2Preview]} 
+                  fps={2} 
+                  title="INTEREP AI (Enhanced)" 
+                  subtitle="15-MIN INTERVAL" 
+                />
+              </div>
+            </motion.div>
           </div>
         </motion.section>
       )}

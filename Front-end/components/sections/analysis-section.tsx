@@ -11,6 +11,7 @@ interface MetricsData {
   ssim: number
   psnr: number
   mse: number
+  fsim: number
 }
 
 const getInterpolationQuality = (metrics: MetricsData): string => {

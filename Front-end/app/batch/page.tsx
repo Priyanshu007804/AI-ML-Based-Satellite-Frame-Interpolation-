@@ -23,6 +23,7 @@ export default function BatchPage() {
   const [levels, setLevels] = useState(1)
   const [progress, setProgress] = useState(0)
   const [results, setResults] = useState<BatchResponse | null>(null)
+  const [isMockResult, setIsMockResult] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -63,6 +64,7 @@ export default function BatchPage() {
       } catch {
         // Fallback to mock for demo
         await new Promise((r) => setTimeout(r, 4000))
+        setIsMockResult(true)
         return MOCK_BATCH_RESPONSE
       }
     },
@@ -70,6 +72,7 @@ export default function BatchPage() {
       setError(null)
       setProgress(0)
       setResults(null)
+      setIsMockResult(false)
       let p = 0
       progressRef.current = setInterval(() => {
         p = Math.min(p + Math.random() * 5 + 1, 92)
@@ -305,16 +308,32 @@ export default function BatchPage() {
                   transition={{ duration: 0.5 }}
                 >
                   {/* Success Banner */}
-                  <div className="flex items-center gap-3 rounded-xl border border-green-400/30 bg-green-400/8 px-5 py-3 mb-8">
-                    <CheckCircle className="h-5 w-5 text-green-400" />
+                  <div className={`flex items-center gap-3 rounded-xl border px-5 py-3 mb-8 ${
+                    isMockResult
+                      ? 'border-orange-400/30 bg-orange-400/8'
+                      : 'border-green-400/30 bg-green-400/8'
+                  }`}>
+                    {isMockResult ? (
+                      <AlertCircle className="h-5 w-5 text-orange-400" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-green-400" />
+                    )}
                     <div>
-                      <p className="text-sm font-semibold text-green-400">Interpolation Complete</p>
-                      <p className="text-xs text-green-400/70">
-                        {results.num_input_frames} → {results.num_output_frames} frames
-                        ({results.temporal_enhancement} enhancement)
+                      <p className={`text-sm font-semibold ${
+                        isMockResult ? 'text-orange-400' : 'text-green-400'
+                      }`}>
+                        {isMockResult ? 'Demo Results (Backend Unavailable)' : 'Interpolation Complete'}
+                      </p>
+                      <p className={`text-xs ${
+                        isMockResult ? 'text-orange-400/70' : 'text-green-400/70'
+                      }`}>
+                        {isMockResult
+                          ? 'Showing mock data — start the FastAPI backend to get real results'
+                          : `${results.num_input_frames} → ${results.num_output_frames} frames (${results.temporal_enhancement} enhancement)`
+                        }
                       </p>
                     </div>
-                    {results.report_url && (
+                    {!isMockResult && results.report_url && (
                       <a
                         href={getReportUrl(results.job_id)}
                         target="_blank"
@@ -350,8 +369,8 @@ export default function BatchPage() {
                     <ComparisonDashboard metrics={results.metrics} />
                   )}
 
-                  {/* Detailed Report Section */}
-                  {results.job_id && (
+                  {/* Detailed Report Section — only for real results */}
+                  {!isMockResult && results.job_id && (
                     <ReportSection
                       jobId={results.job_id}
                       numOriginal={results.num_input_frames}

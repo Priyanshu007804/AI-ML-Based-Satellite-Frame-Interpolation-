@@ -8,7 +8,7 @@ import { getOutputUrl } from '@/lib/api'
 interface VisualizationCardProps {
   title: string
   subtitle: string
-  icon: React.ElementType
+  icon: React.ComponentType<{ className?: string }>
   iconColor: string
   borderColor: string
   imageData: string | null
