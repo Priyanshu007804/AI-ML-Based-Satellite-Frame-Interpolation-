@@ -5,10 +5,10 @@ import { useRef } from 'react'
 import { Satellite, Code2, ExternalLink, Users, Award } from 'lucide-react'
 
 const teamMembers = [
-  { name: 'Team Lead', role: 'ML Engineer' },
-  { name: 'Backend Dev', role: 'FastAPI / PyTorch' },
-  { name: 'Frontend Dev', role: 'Next.js / UI' },
-  { name: 'Data Scientist', role: 'Optical Flow' },
+  { name: 'Priyanshu Singha Roy', role: 'Team Lead & Backend Developer' },
+  { name: 'Soumyajit Paul', role: 'ML Engineer' },
+  { name: 'Sampad Barik', role: 'Next.js / UI' },
+  { name: 'Trisha Jana', role: 'Optical Flow' },
 ]
 
 export function Footer() {
