@@ -1,6 +1,8 @@
 # AI/ML-Based Satellite Frame Interpolation
 
-**ISRO BAH Hackathon 2026 — Team INTEREP AI**
+**ISRO BAH Hackathon 2026 — Team BUGGERS presents INTEREP AI**
+
+
 
 An end-to-end web application that leverages Deep Learning optical flow (RIFE HDv3) to interpolate between temporally sparse satellite imagery frames. This project enables researchers and meteorologists to generate high-temporal-resolution satellite data from standard observations.
 
