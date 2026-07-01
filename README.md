@@ -34,7 +34,7 @@ This provides forecasters and numerical weather prediction models with a smooth,
 ### Frontend
 - **Framework**: Next.js (React)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS (or standard CSS modules)
+- **Styling**: Tailwind CSS, Framer Motion, GSAP, R3F
 - **Role**: Provides an interactive dashboard for users to upload data, view side-by-side comparisons, and analyze metrics.
 
 ### Backend & Data Processing
