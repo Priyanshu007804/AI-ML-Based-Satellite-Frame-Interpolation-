@@ -14,5 +14,10 @@ async def root_check():
 
 @router.get("/health", summary="Health check")
 async def health_check():
-    """Return the server running status."""
-    return {"status": "running"}
+    """Return backend health and service metadata."""
+    return {
+        "status": "running",
+        "service": "Satellite Frame Interpolation API",
+        "model": "RIFE HDv3",
+        "version": "1.0.0",
+    }
